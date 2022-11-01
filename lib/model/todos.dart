@@ -1,11 +1,11 @@
 class Todo {
   Todo({
-    this.id,
-    this.todoTitle,
+    required this.id,
+    required this.todoTitle,
   });
 
-  int? id;
-  String? todoTitle;
+  int id;
+  String todoTitle;
 
   factory Todo.fromJson(Map<String, dynamic> json) => Todo(
         id: json["id"],

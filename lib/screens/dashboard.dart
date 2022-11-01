@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:todoapp/model/todo_response.dart';
 import '../model/taskmodel.dart';
+import '../model/todos.dart';
 import '../services/remote_services.dart';
 
 // ignore: must_be_immutable
 class DashboardPage extends StatefulWidget {
   String name;
+
   DashboardPage({Key? key, required this.name}) : super(key: key);
 
   @override
@@ -16,13 +19,35 @@ class _DashboardPageState extends State<DashboardPage> {
   String name;
 
   _DashboardPageState(this.name);
-  final todoList = ToDo.todoList();
+
+  /// todoList variable will be initialized later once we load the data from the API
+  late List<Todo> todoList;
+
+  ///isTodoLoaded is for check whether we have loaded the data from the Api or not
+  bool isTodoLoaded = false;
+
+
   final _todoController = TextEditingController();
   bool _checked = false;
 
   @override
   void initState() {
+    WidgetsFlutterBinding.ensureInitialized(); //this line is to tell flutter to complete its widget biding thing first
+
+    fetchTodo(); // call the method which will call the api
+
     super.initState();
+  }
+
+  fetchTodo() async {
+    TodoResponse? todoResponse = await getTodos();
+    if (todoResponse != null && todoResponse.data != null) {
+      // successfully loaded the list of todos from the server
+      setState(() {
+        isTodoLoaded = true;
+        todoList = todoResponse.data!.todosList;
+      });
+    }
   }
 
   @override
@@ -182,48 +207,84 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                           ),
-                          Expanded(
-                              child: FutureBuilder<dynamic>(
-                                  future: getTodos(),
-                                  builder: (context, snapshot) {
-                                    if (!snapshot.hasData) {
-                                      return Center(child: Text("Loading..."));
-                                    } else {
-                                      return ListView.builder(
-                                          itemCount: snapshot.data.length,
-                                          itemBuilder: ((context, index) {
-                                            return InkWell(
-                                              onTap: () {
-                                                setState(() {
-                                                  _checked = !_checked;
-                                                });
-                                              },
-                                              child: Row(
-                                                children: [
-                                                  Checkbox(
-                                                      value: _checked,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          _checked = value!;
-                                                        });
-                                                      }),
-                                                  const SizedBox(
-                                                    width: 10,
-                                                  ),
-                                                  Text(
-                                                      snapshot.data[index]
-                                                          .todoTitle,
-                                                      style: const TextStyle(
-                                                        fontFamily:
-                                                            'Poppins Regular',
-                                                        fontSize: 16,
-                                                      ))
-                                                ],
-                                              ),
-                                            );
-                                          }));
-                                    }
-                                  }))
+                          if (!isTodoLoaded) ...[
+                            const Center(child: Text("Loading..."))
+                          ] else ...[
+                            ListView.builder(
+                                itemCount: todoList.length,
+                                shrinkWrap: true,
+                                itemBuilder: ((context, index) {
+                                  return InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _checked = !_checked;
+                                      });
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Checkbox(
+                                            value: _checked,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                _checked = value!;
+                                              });
+                                            }),
+                                        const SizedBox(
+                                          width: 10,
+                                        ),
+                                        Text(todoList[index].todoTitle,
+                                            style: const TextStyle(
+                                              fontFamily: 'Poppins Regular',
+                                              fontSize: 16,
+                                            ))
+                                      ],
+                                    ),
+                                  );
+                                }))
+                          ],
+                          //
+                          // Expanded(
+                          //     child: FutureBuilder<dynamic>(
+                          //         future: getTodos(),
+                          //         builder: (context, snapshot) {
+                          //           if (!snapshot.hasData) {
+                          //             return Center(child: Text("Loading..."));
+                          //           } else {
+                          //             return ListView.builder(
+                          //                 itemCount: snapshot.data.length,
+                          //                 itemBuilder: ((context, index) {
+                          //                   return InkWell(
+                          //                     onTap: () {
+                          //                       setState(() {
+                          //                         _checked = !_checked;
+                          //                       });
+                          //                     },
+                          //                     child: Row(
+                          //                       children: [
+                          //                         Checkbox(
+                          //                             value: _checked,
+                          //                             onChanged: (value) {
+                          //                               setState(() {
+                          //                                 _checked = value!;
+                          //                               });
+                          //                             }),
+                          //                         const SizedBox(
+                          //                           width: 10,
+                          //                         ),
+                          //                         Text(
+                          //                             snapshot.data[index]
+                          //                                 .todoTitle,
+                          //                             style: const TextStyle(
+                          //                               fontFamily:
+                          //                                   'Poppins Regular',
+                          //                               fontSize: 16,
+                          //                             ))
+                          //                       ],
+                          //                     ),
+                          //                   );
+                          //                 }));
+                          //           }
+                          //         }))
                         ],
                       ))),
             ],
@@ -239,9 +300,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   _addTodoItem(String toDo) {
     setState(() {
-      todoList.add(ToDo(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
-          todoText: toDo));
+      todoList.add(
+          Todo(id: DateTime.now().microsecondsSinceEpoch, todoTitle: toDo));
     });
     _todoController.clear();
   }
