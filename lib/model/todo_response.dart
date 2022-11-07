@@ -88,5 +88,5 @@ class ResponseData {
 
   Map<String, dynamic> toJson() => {
     "todos": List<dynamic>.from(todosList.map((x) => x.toJson())),
-  };
+  }; 
 }
